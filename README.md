@@ -10,49 +10,58 @@
 [![Bun](https://img.shields.io/badge/Bun-%23000000.svg?logo=bun&logoColor=white)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-Search and browse your Claude Code bash command history and conversation content.
+**deja** is a CLI tool that indexes your Claude Code sessions and lets you search bash commands and conversation content across all your past sessions.
 
 ```
-"What was that docker command I ran yesterday?"
-"What did we discuss about MCP configuration?"
+"What was that docker command I ran last week?"
+"What did we discuss about the database schema?"
 ```
 
 ```bash
 $ deja search docker --limit 4
 
-[ok] docker build --no-cache --platform linux/amd64 -t ghcr.io/user/api-service:latest .
-     Rebuild without cache for production
-     12/30/2025, 12:46 AM | ~/projects/api-service
+[ok] docker build --no-cache --platform linux/amd64 -t myapp:latest .
+     Build production image
+     1/15/2026, 3:42 PM | ~/projects/myapp
 
-[ok] docker build -t api-service:test .
-     Build test image
-     12/30/2025, 12:45 AM | ~/projects/api-service
+[ok] docker run --rm myapp:test npm run test
+     Run tests in container
+     1/15/2026, 3:45 PM | ~/projects/myapp
+
+[ok] docker compose up -d
+     Start development environment
+     1/14/2026, 10:20 AM | ~/projects/myapp
+
+[ok] docker push registry.example.com/myapp:latest
+     Push to registry
+     1/15/2026, 4:00 PM | ~/projects/myapp
 ```
 
 ```bash
-$ deja chat search "mcp配置"
+$ deja chat search "database schema"
 
 [text]
-  已删除。Playwright MCP 配置和进程都已清理干净。
-  4/18/2026, 11:50:36 PM | ~/Documents/zwork/zoeskills | session: f984ae62...
+  The users table needs a created_at timestamp column. Let me add that now.
+  1/10/2026, 2:30 PM | ~/projects/myapp | session: abc12345...
 
-[text]
-  帮我把playwright mcp先删掉吧
-  4/18/2026, 11:50:06 PM | ~/Documents/zwork/zoeskills | session: f984ae62...
+[thinking]
+  The migration should handle existing rows by setting a default value...
+  1/10/2026, 2:31 PM | ~/projects/myapp | session: abc12345...
 
 2 messages
 ```
 
-Every bash command and conversation message Claude Code runs is logged in session files. `deja` indexes them into a searchable database so you can find commands, review discussions, and avoid repeating mistakes.
+Claude Code stores every bash command and conversation message in session files at `~/.claude/projects/`. **deja** indexes these into a searchable SQLite database so you can find that command from last week, recall decisions from past sessions, and avoid repeating mistakes.
 
 ## Features
 
-- **Smart ranking** - Frecency (frequency + recency) ranking so the most useful commands appear first
-- **LIKE search** - Simple substring matching with SQLite LIKE queries
-- **Conversation search** - Search assistant text, thinking blocks, and tool interactions
-- **Match highlighting** - Search patterns are highlighted in yellow in the output
-- **Automatic sync** - History is automatically synced before each search
-- **Candidate extraction** - Extract high-value content for knowledge ingestion
+- **Command search** - Find bash commands by substring or regex, ranked by frecency
+- **Conversation search** - Search assistant text and thinking blocks across sessions  
+- **Session timeline** - View complete session history with messages and commands
+- **Smart ranking** - Frecency algorithm surfaces frequently-used and recent commands
+- **Match highlighting** - Search patterns highlighted in terminal output
+- **Auto-sync** - Index updates automatically before each search
+- **Candidate extraction** - Identify high-value content for knowledge systems
 
 ## Install
 
@@ -61,6 +70,7 @@ curl -fsSL https://raw.githubusercontent.com/Michaelliv/cc-dejavu/main/install.s
 ```
 
 Or with Bun:
+
 ```bash
 bun add -g cc-dejavu
 ```
@@ -90,7 +100,7 @@ deja search docker
 deja search "git commit.*fix" --regex
 
 # Filter by project directory
-deja search npm --cwd /projects/myapp
+deja search npm --cwd ~/projects/myapp
 
 # Filter by current directory
 deja search npm --here
@@ -102,7 +112,7 @@ deja search npm --sort time
 deja list
 deja list --limit 50
 
-# List commands from current project only
+# List commands from current project only  
 deja list --here
 
 # Manually sync (usually automatic)
@@ -114,10 +124,10 @@ deja sync --force  # Re-index everything
 
 ```bash
 # Search conversation content
-deja chat search "部署"
+deja chat search "deployment"
 
 # Search only thinking blocks
-deja chat search "设计" --type thinking
+deja chat search "architecture" --type thinking
 
 # Search all content types
 deja chat search "error" --type all
@@ -207,12 +217,10 @@ Commands are ranked by **frecency** (frequency + recency):
 score = (1 + log10(frequency)) × recencyWeight
 ```
 
-- **Frequency**: Uses logarithmic scaling so popular commands don't dominate
+- **Frequency**: Logarithmic scaling so popular commands don't dominate
 - **Recency**: Time-decay weights (4h=100, 24h=70, 7d=50, 30d=30)
 
-This means commands you run often AND recently will appear at the top.
-
-Use `--sort time` to revert to simple timestamp ordering.
+Commands you run often AND recently appear at the top. Use `--sort time` for simple timestamp ordering.
 
 ## Value Scoring
 
@@ -224,18 +232,19 @@ Candidates are scored (0-100) based on:
 
 ## How It Works
 
-Claude Code stores conversation data in `~/.claude/projects/`. Each session is a JSONL file containing messages, tool calls, and results.
+Claude Code stores conversation data in `~/.claude/projects/`. Each session is a JSONL file.
 
-`deja` scans these files, extracts:
+**deja** scans these files and extracts:
+
 - **Bash tool invocations** → `commands` table
 - **Assistant text/thinking** → `messages` table
 - **High-value content** → `candidates` table
 
-Data is stored in a local SQLite database at `~/.cc-dejavu/history.db`.
+All data stored locally in SQLite at `~/.cc-dejavu/history.db`.
 
-**Auto-sync**: By default, `search` and `list` automatically sync before returning results. Use `--no-sync` to skip this if you want faster queries.
+**Auto-sync**: `search` and `list` automatically sync before returning results. Use `--no-sync` for faster queries.
 
-**Privacy**: `deja` is read-only and local-only. It reads Claude's session files but never modifies them. No data is sent anywhere.
+**Privacy**: Read-only and local-only. Never modifies Claude session files. No data sent anywhere.
 
 ## Data Model
 
@@ -243,25 +252,25 @@ Data is stored in a local SQLite database at `~/.cc-dejavu/history.db`.
 
 | Field | Description |
 |-------|-------------|
-| `command` | The bash command that was executed |
+| `command` | The bash command executed |
 | `description` | What Claude said it does |
-| `cwd` | Working directory when command ran |
-| `timestamp` | When the command was executed |
-| `is_error` | Whether the command failed |
+| `cwd` | Working directory |
+| `timestamp` | When executed |
+| `is_error` | Whether command failed |
 | `stdout` | Command output |
 | `stderr` | Error output |
-| `session_id` | Which Claude session ran this command |
+| `session_id` | Source session |
 
 ### Messages Table
 
 | Field | Description |
 |-------|-------------|
-| `uuid` | Unique message identifier |
-| `session_id` | Which Claude session |
+| `uuid` | Unique message ID |
+| `session_id` | Source session |
 | `type` | `user` or `assistant` |
 | `content_type` | `text`, `thinking`, `tool_use`, `tool_result` |
-| `content` | The message content |
-| `timestamp` | When the message was sent |
+| `content` | Message content |
+| `timestamp` | When sent |
 | `cwd` | Working directory context |
 
 ### Candidates Table
@@ -270,38 +279,36 @@ Data is stored in a local SQLite database at `~/.cc-dejavu/history.db`.
 |-------|-------------|
 | `session_id` | Source session |
 | `content_type` | Type of content |
-| `content` | The candidate content |
+| `content` | Candidate content |
 | `value_score` | Quality score (0-100) |
 | `timestamp` | When extracted |
 
 ## For AI Agents
 
-Run `deja onboard` to add a section to `~/.claude/CLAUDE.md` so Claude knows how to search its own history:
+Run `deja onboard` to add documentation to `~/.claude/CLAUDE.md`:
 
 ```bash
 deja onboard
 ```
 
-This adds instructions for using `deja search`, `deja list`, and `deja chat search`.
+This adds instructions for `deja search`, `deja list`, and `deja chat search`.
 
 ### When to use `deja`
 
-- User asks "what was that command I/you ran?"
-- User wants to find commands from a previous session
-- User asks "what did we discuss about X?"
-- User wants to recall decisions or thinking from past sessions
+- "What was that command I/you ran?"
+- "Find commands from previous session"
+- "What did we discuss about X?"
+- "Recall decisions from past sessions"
 
 ### When NOT to use `deja`
 
-- Finding files by name -> use `Glob`
-- Searching file contents -> use `Grep`
-- Checking recent conversation context -> already in your context
+- Finding files by name → use `Glob`
+- Searching file contents → use `Grep`
+- Recent conversation → already in context
 
 ## SessionEnd Hook Integration
 
-The `deja ingest --candidates --format json` output can be used in Claude Code's SessionEnd hook to extract valuable content for knowledge systems.
-
-Example hook script:
+Use `deja ingest --candidates --format json` in Claude Code's SessionEnd hook:
 
 ```bash
 #!/bin/bash
@@ -330,26 +337,85 @@ Output format:
 ## Development
 
 ```bash
-# Install dependencies
 bun install
-
-# Run directly
 bun run src/index.ts search docker
-bun run src/index.ts chat search "部署"
-
-# Run tests
+bun run src/index.ts chat search "deployment"
 bun test
-
-# Run tests with coverage
 bun test --coverage
-
-# Build binary
 bun run build
 ```
 
 ## About the name
 
-`deja` - short for deja vu, "already seen." It shows you commands and conversations you've already had.
+**deja** - short for *déjà vu*, "already seen." Shows you commands and conversations you've already had.
+
+---
+
+## 中文说明
+
+**deja** 是一个 CLI 工具，用于索引 Claude Code 会话记录，支持搜索历史命令和对话内容。
+
+### 功能特点
+
+- **命令搜索** - 按子串或正则搜索 bash 命令，按热度排序
+- **对话搜索** - 搜索助手回复和思考内容
+- **会话时间线** - 查看完整会话历史
+- **智能排序** - 热度算法（频率 + 时间衰减）
+- **候选提取** - 识别高价值内容供知识库使用
+
+### 常用命令
+
+```bash
+# 搜索命令
+deja search docker          # 搜索包含 docker 的命令
+deja search "git.*push" --regex  # 正则搜索
+deja search npm --here      # 当前项目目录
+
+# 列出命令
+deja list                   # 最近命令
+deja list --here --limit 50 # 当前项目 50 条
+
+# 搜索对话
+deja chat search "部署"     # 搜索对话内容
+deja chat search "架构" --type thinking  # 只搜思考内容
+deja chat session <session_id>  # 查看完整会话
+
+# 提取候选
+deja ingest --candidates --min-score 70  # 高价值内容
+
+# 同步索引
+deja sync                   # 同步新内容
+deja sync --force           # 强制重建全部索引
+```
+
+### 排序算法
+
+**热度（Frecency）** = 频率 × 时间权重
+
+- 频率：使用 log10 缩放，避免热门命令过度占优
+- 时间：4小时内=100，24小时内=70，7天内=50，30天内=30
+
+常用且最近的命令排在最前。
+
+### 常用场景
+
+| 场景 | 命令 |
+|------|------|
+| 找上次部署命令 | `deja search deploy` |
+| 查看当前项目历史 | `deja list --here` |
+| 回忆之前的讨论 | `deja chat search "关键词"` |
+| 查看失败的命令 | 搜索结果中的 `[error]` 标记 |
+
+### 数据位置
+
+- 会话文件：`~/.claude/projects/*.jsonl`
+- 索引数据库：`~/.cc-dejavu/history.db`
+
+### 隐私说明
+
+- 仅读取，不修改 Claude 会话文件
+- 所有数据本地存储
+- 不上传任何数据
 
 ---
 
