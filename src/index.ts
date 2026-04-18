@@ -4,9 +4,11 @@ import { search } from "./commands/search";
 import { list } from "./commands/list";
 import { syncCommand } from "./commands/syncCmd";
 import { onboard } from "./commands/onboard";
+import { chatSearch, chatSession } from "./commands/chat";
+import { ingest } from "./commands/ingest";
 import { parseArgs } from "./cli";
 
-const VERSION = "0.4.1";
+const VERSION = "0.5.0";
 const REPO_URL = "https://github.com/Michaelliv/cc-dejavu";
 
 const args = process.argv.slice(2);
@@ -41,6 +43,26 @@ ${REPO_URL}
   onboard            Add deja section to ~/.claude/CLAUDE.md
     --force, -f      Update existing section
 
+  chat search <pattern>   Search conversation content
+    --type <type>          Filter: text, thinking, all (default: all)
+    --cwd <path>           Filter by working directory
+    --session <id>         Filter by session ID
+    --limit, -n <N>        Limit results
+    --format <fmt>         Output: text (default), json
+    --no-sync              Skip auto-sync
+
+  chat session <session_id>  View full session timeline
+    --format <fmt>           Output: text (default), json
+    --include-commands       Include bash commands in timeline
+    --no-sync                Skip auto-sync
+
+  ingest             Show index stats or generate candidates
+    --candidates             Generate knowledge ingestion candidates
+    --session <id>           Filter by session ID
+    --min-score <N>          Minimum value score (default: 50)
+    --format <fmt>           Output: text (default), json
+    --no-sync                Skip auto-sync
+
 \x1b[1mEXAMPLES:\x1b[0m
   deja search docker
   deja search "git.*main" --regex
@@ -50,6 +72,10 @@ ${REPO_URL}
   deja list --limit 50
   deja list --here
   deja sync --force
+  deja chat search "部署方案"
+  deja chat search "error" --type thinking
+  deja chat session abc-123-session
+  deja ingest --candidates --format json
 `);
 }
 
@@ -95,6 +121,56 @@ async function main(): Promise<void> {
     case "onboard":
       onboard({
         force: flags.force as boolean,
+      });
+      break;
+
+    case "chat":
+      const chatSubCommand = args[1];
+      if (!chatSubCommand) {
+        console.error("Error: chat requires a subcommand (search, session)");
+        process.exit(1);
+      }
+      const chatFlags = parseArgs(args.slice(2)).flags;
+      const chatPos = parseArgs(args.slice(2)).positional;
+
+      if (chatSubCommand === "search") {
+        if (chatPos.length === 0) {
+          console.error("Error: chat search requires a pattern");
+          process.exit(1);
+        }
+        await chatSearch({
+          pattern: chatPos[0],
+          type: (chatFlags.type as "text" | "thinking" | "all") || "all",
+          cwd: chatFlags.here ? process.cwd() : (chatFlags.cwd as string),
+          session: chatFlags.session as string,
+          limit: chatFlags.limit ? parseInt(chatFlags.limit as string, 10) : 20,
+          format: (chatFlags.format as "text" | "json") || "text",
+          noSync: chatFlags.noSync as boolean,
+        });
+      } else if (chatSubCommand === "session") {
+        if (chatPos.length === 0) {
+          console.error("Error: chat session requires a session_id");
+          process.exit(1);
+        }
+        await chatSession({
+          sessionId: chatPos[0],
+          format: (chatFlags.format as "text" | "json") || "text",
+          includeCommands: chatFlags["include-commands"] as boolean,
+          noSync: chatFlags.noSync as boolean,
+        });
+      } else {
+        console.error(`Unknown chat subcommand: ${chatSubCommand}`);
+        process.exit(1);
+      }
+      break;
+
+    case "ingest":
+      await ingest({
+        candidates: flags.candidates as boolean,
+        session: flags.session as string,
+        minScore: flags["min-score"] ? parseInt(flags["min-score"] as string, 10) : 50,
+        format: (flags.format as "text" | "json") || "text",
+        noSync: flags.noSync as boolean,
       });
       break;
 

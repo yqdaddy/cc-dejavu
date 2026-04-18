@@ -24,6 +24,18 @@ export function parseArgs(args: string[]): ParsedArgs {
       flags.limit = args[++i];
     } else if (arg === "--sort" && args[i + 1]) {
       flags.sort = args[++i];
+    } else if (arg === "--candidates") {
+      flags.candidates = true;
+    } else if (arg === "--session" && args[i + 1]) {
+      flags.session = args[++i];
+    } else if (arg === "--min-score" && args[i + 1]) {
+      flags["min-score"] = args[++i];
+    } else if (arg === "--format" && args[i + 1]) {
+      flags.format = args[++i];
+    } else if (arg === "--type" && args[i + 1]) {
+      flags.type = args[++i];
+    } else if (arg === "--include-commands") {
+      flags["include-commands"] = true;
     } else if (!arg.startsWith("-")) {
       positional.push(arg);
     }

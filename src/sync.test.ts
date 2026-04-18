@@ -14,7 +14,7 @@ describe("sync", () => {
 {"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"tool_1","content":"file1\\nfile2","is_error":false}]},"toolUseResult":{"stdout":"file1\\nfile2","stderr":""}}
       `.trim();
 
-      const commands = parseJsonlContent(jsonl, "session_123");
+      const { commands } = parseJsonlContent(jsonl, "session_123");
 
       expect(commands).toHaveLength(1);
       expect(commands[0]).toMatchObject({
@@ -36,7 +36,7 @@ describe("sync", () => {
 {"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"tool_2","content":"/tmp","is_error":false}]}}
       `.trim();
 
-      const commands = parseJsonlContent(jsonl);
+      const { commands } = parseJsonlContent(jsonl);
       expect(commands).toHaveLength(2);
       expect(commands[0].command).toBe("echo hello");
       expect(commands[1].command).toBe("pwd");
@@ -48,7 +48,7 @@ describe("sync", () => {
 {"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"tool_1","content":"","is_error":true}]},"toolUseResult":{"stderr":"error message"}}
       `.trim();
 
-      const commands = parseJsonlContent(jsonl);
+      const { commands } = parseJsonlContent(jsonl);
       expect(commands).toHaveLength(1);
       expect(commands[0].is_error).toBe(1);
       expect(commands[0].stderr).toBe("error message");
@@ -62,7 +62,7 @@ describe("sync", () => {
 {"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"tool_2","content":"output"}]}}
       `.trim();
 
-      const commands = parseJsonlContent(jsonl);
+      const { commands } = parseJsonlContent(jsonl);
       expect(commands).toHaveLength(1);
       expect(commands[0].command).toBe("ls");
     });
@@ -75,12 +75,12 @@ also not valid
 {"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"tool_1","content":"output"}]}}
       `.trim();
 
-      const commands = parseJsonlContent(jsonl);
+      const { commands } = parseJsonlContent(jsonl);
       expect(commands).toHaveLength(1);
     });
 
     it("handles empty input", () => {
-      const commands = parseJsonlContent("");
+      const { commands } = parseJsonlContent("");
       expect(commands).toHaveLength(0);
     });
 
@@ -89,7 +89,7 @@ also not valid
 {"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"tool_1","name":"Bash","input":{"command":"ls"}}]},"cwd":"/tmp","timestamp":"2024-01-01T00:00:00Z"}
       `.trim();
 
-      const commands = parseJsonlContent(jsonl);
+      const { commands } = parseJsonlContent(jsonl);
       expect(commands).toHaveLength(0);
     });
 
@@ -98,7 +98,7 @@ also not valid
 {"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"unknown_tool","content":"output"}]}}
       `.trim();
 
-      const commands = parseJsonlContent(jsonl);
+      const { commands } = parseJsonlContent(jsonl);
       expect(commands).toHaveLength(0);
     });
   });

@@ -1,13 +1,14 @@
 {
   "name": "cc-dejavu",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "author": "Michaelliv",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Michaelliv/cc-dejavu.git"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "typescript": "^6.0.3"
   },
   "bin": {
     "deja": "./dist/index.js"
