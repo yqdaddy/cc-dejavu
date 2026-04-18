@@ -10,6 +10,8 @@
 [![Bun](https://img.shields.io/badge/Bun-%23000000.svg?logo=bun&logoColor=white)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
+**[English](README.md)** | **[中文](README_CN.md)**
+
 **deja** is a CLI tool that indexes your Claude Code sessions and lets you search bash commands and conversation content across all your past sessions.
 
 ```
@@ -348,74 +350,6 @@ bun run build
 ## About the name
 
 **deja** - short for *déjà vu*, "already seen." Shows you commands and conversations you've already had.
-
----
-
-## 中文说明
-
-**deja** 是一个 CLI 工具，用于索引 Claude Code 会话记录，支持搜索历史命令和对话内容。
-
-### 功能特点
-
-- **命令搜索** - 按子串或正则搜索 bash 命令，按热度排序
-- **对话搜索** - 搜索助手回复和思考内容
-- **会话时间线** - 查看完整会话历史
-- **智能排序** - 热度算法（频率 + 时间衰减）
-- **候选提取** - 识别高价值内容供知识库使用
-
-### 常用命令
-
-```bash
-# 搜索命令
-deja search docker          # 搜索包含 docker 的命令
-deja search "git.*push" --regex  # 正则搜索
-deja search npm --here      # 当前项目目录
-
-# 列出命令
-deja list                   # 最近命令
-deja list --here --limit 50 # 当前项目 50 条
-
-# 搜索对话
-deja chat search "部署"     # 搜索对话内容
-deja chat search "架构" --type thinking  # 只搜思考内容
-deja chat session <session_id>  # 查看完整会话
-
-# 提取候选
-deja ingest --candidates --min-score 70  # 高价值内容
-
-# 同步索引
-deja sync                   # 同步新内容
-deja sync --force           # 强制重建全部索引
-```
-
-### 排序算法
-
-**热度（Frecency）** = 频率 × 时间权重
-
-- 频率：使用 log10 缩放，避免热门命令过度占优
-- 时间：4小时内=100，24小时内=70，7天内=50，30天内=30
-
-常用且最近的命令排在最前。
-
-### 常用场景
-
-| 场景 | 命令 |
-|------|------|
-| 找上次部署命令 | `deja search deploy` |
-| 查看当前项目历史 | `deja list --here` |
-| 回忆之前的讨论 | `deja chat search "关键词"` |
-| 查看失败的命令 | 搜索结果中的 `[error]` 标记 |
-
-### 数据位置
-
-- 会话文件：`~/.claude/projects/*.jsonl`
-- 索引数据库：`~/.cc-dejavu/history.db`
-
-### 隐私说明
-
-- 仅读取，不修改 Claude 会话文件
-- 所有数据本地存储
-- 不上传任何数据
 
 ---
 
